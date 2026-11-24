@@ -44,7 +44,10 @@ def install_auth(app, templates):
                                          headers={"Cache-Control": "no-store"})
         if path == "/healthz" and request.method == "GET":
             return PlainTextResponse("ok", headers={"Cache-Control": "no-store"})
-        if not valid and path != "/login" and not path.startswith("/static/"):
+        # Logout is idempotent, even after a server restart or session expiry.
+        # The origin check above still applies to every POST.
+        logout_post = path == "/logout" and request.method == "POST"
+        if not valid and path != "/login" and not path.startswith("/static/") and not logout_post:
             if request.method in ("GET", "HEAD"):
                 return RedirectResponse("/login", status_code=303, headers={"Cache-Control": "no-store"})
             return PlainTextResponse("Session expired. Sign in again.", status_code=401,
