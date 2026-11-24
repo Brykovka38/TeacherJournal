@@ -11,6 +11,19 @@
 .student-card .compact-comment textarea {width:100%;margin-top:8px}
 .student-card .compact-row input,.student-card .compact-row select,.student-card .compact-subject-topic select {width:100%;min-height:42px}
 @media(max-width:650px){.student-card .compact-subject-topic{grid-template-columns:1fr}.student-card .compact-row{gap:8px}}
+@media(max-width:650px){
+.student-card{padding:10px !important;margin:8px 0 !important;gap:8px}
+.student-card .grouphead{margin-bottom:0 !important;gap:3px;flex-direction:column;align-items:flex-start}
+.student-card h3{font-size:16px;overflow-wrap:anywhere}.student-card .grouphead .subtle{font-size:12px}
+.student-card .compact-row,.student-card .compact-subject-topic{margin-bottom:0;gap:8px}
+.student-card .compact-comment{margin-top:0}
+.student-card.first-course-card{grid-template-columns:minmax(0,1fr) minmax(108px,36%);align-items:center;gap:4px 8px}
+.first-course-card .compact-row{grid-template-columns:minmax(0,1fr)}
+.first-course-card .compact-row label{font-size:0;gap:0}
+.first-course-card .compact-row select{font-size:16px;padding:6px 3px;min-height:44px}
+.first-course-card .compact-comment{grid-column:1/-1}
+.first-course-card .compact-comment summary{padding:5px 0}
+}
 </style></head><body><main>
 <nav class="nav"><a href="/">Группы и ученики</a><a href="/catalog">Предметы и темы</a><a href="/journal" aria-current="page">Журнал</a><a href="/history">История</a><a href="/statistics">Статистика</a><a href="/journal/makeups">Отработки</a><form method="post" action="/logout" style="display:inline;margin:0"><button type="submit">Выйти</button></form></nav>
 <script>
@@ -76,7 +89,7 @@ D.subjects.forEach(s=>{const o=mk('option','',s.name);o.value=s.id;sharedSubject
 const sharedPicker=topicPicker(sharedSubject,D.plan?.topic_id);$('#shared .topic-picker').replaceWith(sharedPicker);
 const list=$('#student-list'),editors=[];
 D.members.forEach(s=>{const old=D.entries.find(e=>e.student_id===s.id),prev=D.previous.find(e=>e.student_id===s.id);const first=(old?.course_at_lesson??s.current_course)===1;
- const card=mk('div','student-card');const head=mk('div','grouphead');head.append(mk('h3','',s.last_name+' '+s.first_name+' · '+(old?.course_at_lesson??s.current_course)+' курс'),mk('span','subtle',first?'Общая тема':'Индивидуально'));card.append(head);
+ const card=mk('div',first?'student-card first-course-card':'student-card');const head=mk('div','grouphead');head.append(mk('h3','',s.last_name+' '+s.first_name+' · '+(old?.course_at_lesson??s.current_course)+' курс'),mk('span','subtle',first?'Общая тема':'Индивидуально'));card.append(head);
  const status=mk('select');[['present','Был'],['absent','Пропустил']].forEach(([v,n])=>{const o=mk('option','',n);o.value=v;status.append(o)});status.value=old?.attendance||'present';const statusLabel=mk('label','','Посещение');statusLabel.append(status);const compactRow=mk('div','compact-row');compactRow.append(statusLabel);
  let sub=null,picker=null,hours=null;const fields=mk('div','compact-subject-topic');if(!first){const subLabel=mk('label','','Предмет');sub=selectSubject(old?.subject_id||prev?.subject_id);subLabel.append(sub);const topicLabel=mk('label','','Тема');picker=topicPicker(sub,old?.topic_id||prev?.topic_id);topicLabel.append(picker);const hoursLabel=mk('label','','Академические часы');hours=mk('input');hours.type='number';hours.min='.25';hours.max='24';hours.step='.25';hours.value=old?.planned_academic_hours||prev?.planned_academic_hours||4;hoursLabel.append(hours);fields.append(subLabel,topicLabel);compactRow.append(hoursLabel);card.append(compactRow,fields)}else{card.append(compactRow)}
  const commentWrap=mk('details','compact-comment');const commentTitle=mk('summary','','Комментарий'+(old?.comment?' · заполнен':''));const commentLabel=mk('label');const comment=mk('textarea');comment.rows=2;comment.placeholder='Необязательно';comment.value=old?.comment||'';commentLabel.append(comment);commentWrap.append(commentTitle,commentLabel);if(old?.comment)commentWrap.open=true;card.append(commentWrap);list.append(card);editors.push({s,first,status,sub,picker,hours,comment})});

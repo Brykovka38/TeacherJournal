@@ -8,6 +8,16 @@
 .stat-subject{margin-top:16px;padding:14px;border:1px solid #dce3eb;border-radius:12px}
 .stat-subject h3{margin:0 0 10px}.stat-project{border-top:1px solid #e2e8f0;padding:9px 0}.stat-project summary{cursor:pointer;display:flex;justify-content:space-between;gap:12px;font-weight:600;list-style:none}.stat-project summary::before{content:"▸";margin-right:8px}.stat-project[open] summary::before{content:"▾"}.stat-project summary span:first-child{flex:1}
 .stat-table{width:100%;border-collapse:collapse;margin-top:8px}.stat-table th,.stat-table td{padding:7px 8px;text-align:left;border-bottom:1px solid #e5e7eb}.stat-table th{font-size:.82rem;color:#64748b}.stat-scroll{overflow-x:auto}.stat-muted{color:#64748b;font-size:.9rem}
+@media(max-width:650px){
+.stat-filter label{flex:1 1 100%;min-width:0}
+.stat-filter label.stat-date{flex:1 1 calc(50% - 6px);min-width:0}
+.stat-filter input[type=date]{min-width:0;max-width:100%;font-size:16px;padding:8px 4px;min-height:44px;display:block;-webkit-appearance:none}
+.stat-summary{display:grid;grid-template-columns:minmax(0,1fr);gap:0;background:#f1f5f9;border-radius:10px;padding:4px 12px;margin:10px 0}
+.stat-summary div{display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0;padding:7px 0;border-radius:0;font-size:14px;border-bottom:1px solid #dce3eb}
+.stat-summary div:last-child{border:0}.stat-summary strong{font-size:14px;margin:0;white-space:nowrap}
+.stat-subject{padding:10px;margin-top:10px}.stat-subject h3{font-size:16px;overflow-wrap:anywhere}
+.stat-project summary{gap:5px;font-size:14px}.stat-project summary span:last-child{white-space:nowrap}
+}
 </style></head><body><main>
 <nav class="nav"><a href="/">Группы и ученики</a><a href="/catalog">Предметы и темы</a><a href="/journal">Журнал</a><a href="/history">История</a><a href="/statistics" aria-current="page">Статистика</a><a href="/journal/makeups">Отработки</a><form method="post" action="/logout" style="display:inline;margin:0"><button type="submit">Выйти</button></form></nav>
 <header><h1>📊 Статистика обучения</h1><p>Предмет → проект → тема, академические часы</p></header>
@@ -16,16 +26,16 @@
 <label>Предмет<select name="subject_id" id="subject"><option value="">Все предметы</option>{% for s in subjects %}<option value="{{s.id}}" {% if subject_id==s.id %}selected{% endif %}>{{s.name}}</option>{% endfor %}</select></label>
 <label>Проект<select name="project" id="project"><option value="">Все проекты</option>{% for p in project_options %}<option value="{{p}}" {% if project==p %}selected{% endif %}>{{p}}</option>{% endfor %}</select></label>
 <label>Тема<select name="topic_id" id="topic"><option value="">Все темы</option>{% for t in topics %}<option value="{{t.id}}" data-subject="{{t.subject_id}}" {% if topic_id==t.id %}selected{% endif %}>{{t.name}}</option>{% endfor %}</select></label>
-<label>С даты<input type="date" name="date_from" value="{{date_from}}"></label>
-<label>По дату<input type="date" name="date_to" value="{{date_to}}"></label>
+<label class="stat-date">С даты<input type="date" name="date_from" value="{{date_from}}"></label>
+<label class="stat-date">По дату<input type="date" name="date_to" value="{{date_to}}"></label>
 <button type="submit">Показать статистику</button><a href="/statistics">Сбросить</a>
 </form><p class="stat-muted">Проект — часть названия до первой точки. Без точки — «Без проекта». Период считается по дате исходного занятия; отработки относятся к теме пропуска.</p></section>
 <section class="panel"><h2>Результаты</h2>
-<div class="stat-summary"><div>Пройдено<strong>{{totals.completed}} ак. ч.</strong></div><div>На занятиях<strong>{{totals.attended}} ак. ч.</strong></div><div>Отработано<strong>{{totals.made_up}} ак. ч.</strong></div><div>Долг<strong>{{totals.remaining}} ак. ч.</strong></div><div>Запланировано<strong>{{totals.planned}} ак. ч.</strong></div></div>
+<div class="stat-summary"><div>Пройдено<strong>{{ ("%s"|format(totals.completed)).rstrip("0").rstrip(".") if "." in ("%s"|format(totals.completed)) else totals.completed }} ак. ч.</strong></div><div>На занятиях<strong>{{ ("%s"|format(totals.attended)).rstrip("0").rstrip(".") if "." in ("%s"|format(totals.attended)) else totals.attended }} ак. ч.</strong></div><div>Отработано<strong>{{ ("%s"|format(totals.made_up)).rstrip("0").rstrip(".") if "." in ("%s"|format(totals.made_up)) else totals.made_up }} ак. ч.</strong></div><div>Долг<strong>{{ ("%s"|format(totals.remaining)).rstrip("0").rstrip(".") if "." in ("%s"|format(totals.remaining)) else totals.remaining }} ак. ч.</strong></div><div>Запланировано<strong>{{ ("%s"|format(totals.planned)).rstrip("0").rstrip(".") if "." in ("%s"|format(totals.planned)) else totals.planned }} ак. ч.</strong></div></div>
 {% for g in groups %}
-<div class="stat-subject"><h3>{{g.student_name}} · {{g.subject_name}} — {{g.completed}} ак. ч.</h3>
+<div class="stat-subject"><h3>{{g.student_name}} · {{g.subject_name}} — {{ ("%s"|format(g.completed)).rstrip("0").rstrip(".") if "." in ("%s"|format(g.completed)) else g.completed }} ак. ч.</h3>
 {% for p in g.projects %}
-<details class="stat-project"><summary><span>📁 {{p.name}}</span><span>{{p.completed}} ак. ч.</span></summary>
+<details class="stat-project"><summary><span>📁 {{p.name}}</span><span>{{ ("%s"|format(p.completed)).rstrip("0").rstrip(".") if "." in ("%s"|format(p.completed)) else p.completed }} ак. ч.</span></summary>
 <div class="stat-scroll"><table class="stat-table"><thead><tr><th>Тема</th><th>Пройдено</th><th>На занятиях</th><th>Отработано</th><th>Долг</th></tr></thead><tbody>
 {% for t in p.topics %}<tr><td>{{t.action}}</td><td><b>{{t.completed}}</b></td><td>{{t.attended}}</td><td>{{t.made_up}}</td><td>{{t.remaining}}</td></tr>{% endfor %}
 </tbody></table></div></details>

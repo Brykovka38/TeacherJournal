@@ -35,3 +35,18 @@ textarea{font:inherit;padding:10px;border:1px solid #cbd5e1;border-radius:8px;wi
 .compact-comment{margin-top:5px;font-size:13px;color:#68788c}
 .compact-comment div{padding:5px 0;overflow-wrap:anywhere}
 @media(max-width:680px){.compact-history-top,.compact-history-bottom{align-items:flex-start}.compact-history-bottom{gap:6px}.compact-history-title{font-size:14px}.compact-history-actions .mini-date form{right:-36px}}
+
+/* v1.2 mobile */
+.mobile-action{display:none}
+@media(max-width:650px){
+.panel{padding:14px}.group{padding:10px}.grouphead h3{overflow-wrap:anywhere}
+.mobile-member,.mobile-course{flex-wrap:nowrap;align-items:center;gap:6px;padding:6px 0}
+.mobile-member>span,.mobile-course>strong{flex:1;min-width:0;overflow-wrap:anywhere;font-size:15px}
+.mobile-member form,.mobile-course form{flex:none;margin:0;display:flex;flex-wrap:nowrap;align-items:center;gap:5px}
+.mobile-course select{width:88px;padding:6px 3px;font-size:16px;min-height:44px}
+.mobile-member button,.mobile-course button{width:44px;height:44px;padding:0;font-size:22px;line-height:1}
+.mobile-member button{color:#a34c50}.mobile-course button{color:#237747;background:#e6f1e8}
+.mobile-member .desktop-action,.mobile-course .desktop-action{display:none}
+.mobile-member .mobile-action,.mobile-course .mobile-action{display:inline}
+input,select,textarea{max-width:100%}
+}
