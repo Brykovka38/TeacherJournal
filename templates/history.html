@@ -3,9 +3,9 @@
 <nav class="nav"><a href="/">Группы и ученики</a><a href="/catalog">Предметы и темы</a><a href="/journal">Журнал</a><a href="/history" aria-current="page">История</a><a href="/statistics">Статистика</a><a href="/journal/makeups">Отработки</a><form method="post" action="/logout" style="display:inline;margin:0"><button type="submit">Выйти</button></form></nav>
 <header><h1>📅 История занятий</h1><p>Поиск записей, исправления и перенос даты занятия</p></header>
 {% if notice %}<section class="panel notice">{% if notice=='moved' %}Дата занятия изменена.{% elif notice=='deleted' %}Запись удалена.{% else %}Изменений не было.{% endif %}</section>{% endif %}
-<section class="panel"><h2>Фильтры</h2><form method="get" action="/history" class="fields">
-<label>С даты<input type="date" name="date_from" value="{{date_from.isoformat() if date_from else ''}}"></label>
-<label>По дату<input type="date" name="date_to" value="{{date_to.isoformat() if date_to else ''}}"></label>
+<section class="panel"><h2>Фильтры</h2><form method="get" action="/history" class="fields history-filters">
+<label class="history-date">С даты<input type="date" name="date_from" value="{{date_from.isoformat() if date_from else ''}}"></label>
+<label class="history-date">По дату<input type="date" name="date_to" value="{{date_to.isoformat() if date_to else ''}}"></label>
 <label>Группа<select name="group_id"><option value="">Все группы</option>{% for g in groups %}<option value="{{g.id}}" {% if group_id==g.id %}selected{% endif %}>{{g.name}}</option>{% endfor %}</select></label>
 <label>Ученик<select name="student_id"><option value="">Все ученики</option>{% for s in students %}<option value="{{s.id}}" {% if student_id==s.id %}selected{% endif %}>{{s.last_name}} {{s.first_name}}</option>{% endfor %}</select></label>
 <button type="submit">Показать историю</button><a href="/history">Сбросить фильтры</a></form></section>

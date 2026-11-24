@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
 from sqlalchemy import create_engine, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine import URL
 from dotenv import load_dotenv
 
@@ -34,8 +35,8 @@ def redirect():
 @app.get('/', response_class=HTMLResponse)
 def home(request: Request):
     groups = rows('SELECT id, name, active FROM study_groups ORDER BY active DESC, name')
-    students = rows('SELECT id, last_name, first_name, current_course, active FROM students ORDER BY active DESC, last_name, first_name')
-    memberships = rows('''SELECT gm.group_id, gm.student_id, gm.joined_on, gm.left_on, s.last_name, s.first_name FROM group_memberships gm JOIN students s ON s.id=gm.student_id WHERE gm.left_on IS NULL ORDER BY s.last_name,s.first_name''')
+    students = rows('SELECT id, last_name, first_name, current_course, active, EXISTS (SELECT 1 FROM lesson_entries e WHERE e.student_id=students.id) AS has_history FROM students ORDER BY active DESC, last_name, first_name')
+    memberships = rows('''SELECT gm.group_id, gm.student_id, gm.joined_on, gm.left_on, s.last_name, s.first_name FROM group_memberships gm JOIN students s ON s.id=gm.student_id WHERE gm.left_on IS NULL AND s.active ORDER BY s.last_name,s.first_name''')
     return templates.TemplateResponse(request, 'index.html', {'groups':groups,'students':students,'memberships':memberships})
 
 @app.get('/check-db')
@@ -79,9 +80,41 @@ def change_course(student_id:int,course:int=Form(...)):
         conn.execute(text('UPDATE students SET current_course=:course WHERE id=:id'),{'course':course,'id':student_id})
     return redirect()
 
+@app.post('/students/{student_id}/edit')
+def edit_student(student_id:int,last_name:str=Form(...),first_name:str=Form(...),course:int=Form(...)):
+    if not last_name.strip() or not first_name.strip() or not 1<=course<=5:
+        raise HTTPException(400,'Укажите имя, фамилию и курс от 1 до 5')
+    with engine.begin() as conn:
+        result=conn.execute(text('UPDATE students SET last_name=:last, first_name=:first, current_course=:course WHERE id=:id'),{'last':last_name.strip(),'first':first_name.strip(),'course':course,'id':student_id})
+        if not result.rowcount: raise HTTPException(404,'Ученик не найден')
+    return redirect()
+
+@app.post('/students/{student_id}/active')
+def set_student_active(student_id:int,active:bool=Form(...)):
+    with engine.begin() as conn:
+        result=conn.execute(text('UPDATE students SET active=:active WHERE id=:id'),{'active':active,'id':student_id})
+        if not result.rowcount: raise HTTPException(404,'Ученик не найден')
+    return redirect()
+
+@app.post('/students/{student_id}/delete')
+def delete_student(student_id:int):
+    try:
+        with engine.begin() as conn:
+            if conn.execute(text('SELECT id FROM students WHERE id=:id FOR UPDATE'),{'id':student_id}).scalar() is None:
+                raise HTTPException(404,'Ученик не найден')
+            if conn.execute(text('SELECT 1 FROM lesson_entries WHERE student_id=:id LIMIT 1'),{'id':student_id}).scalar():
+                raise HTTPException(409,'У ученика есть история занятий. Используйте архивирование.')
+            conn.execute(text('DELETE FROM group_memberships WHERE student_id=:id'),{'id':student_id})
+            conn.execute(text('DELETE FROM students WHERE id=:id'),{'id':student_id})
+    except IntegrityError:
+        raise HTTPException(409,'Удаление невозможно: существуют связанные записи. Используйте архивирование.')
+    return redirect()
+
 @app.post('/memberships')
 def add_membership(student_id:int=Form(...),group_id:int=Form(...)):
     with engine.begin() as conn:
+        if not conn.execute(text('SELECT id FROM students WHERE id=:id AND active'),{'id':student_id}).scalar():
+            raise HTTPException(400,'Активный ученик не найден')
         exists=conn.execute(text('SELECT 1 FROM group_memberships WHERE student_id=:sid AND group_id=:gid AND left_on IS NULL'),{'sid':student_id,'gid':group_id}).scalar()
         if not exists:
             conn.execute(text('INSERT INTO group_memberships(student_id,group_id,joined_on) VALUES (:sid,:gid,:today)'),{'sid':student_id,'gid':group_id,'today':date.today()})
@@ -183,10 +216,10 @@ def journal(request: Request, group_id: int | None = None, lesson_date: date | N
           WHERE e.student_id=s.id AND l.group_id=:gid AND l.lesson_date=:day
           ORDER BY e.id DESC LIMIT 1
       ) saved ON TRUE
-      WHERE EXISTS (
+      WHERE (s.active AND EXISTS (
           SELECT 1 FROM group_memberships gm
           WHERE gm.student_id=s.id AND gm.group_id=:gid AND gm.left_on IS NULL
-      ) OR saved.course_at_lesson IS NOT NULL
+      )) OR saved.course_at_lesson IS NOT NULL
       ORDER BY s.id''', {'gid':group_id,'day':day}) if group_id else []
     subjects = rows('SELECT id,name FROM subjects WHERE archived=FALSE ORDER BY name')
     topics = rows('''SELECT t.id,t.subject_id,t.name FROM topics t JOIN subjects s ON s.id=t.subject_id
@@ -247,8 +280,8 @@ def save_journal(group_id:int=Form(...),lesson_date:date=Form(...),payload:str=F
             seen.add(sid)
             member=conn.execute(text('''SELECT s.current_course FROM students s
               WHERE s.id=:sid AND (
-                EXISTS (SELECT 1 FROM group_memberships gm
-                        WHERE gm.student_id=s.id AND gm.group_id=:gid AND gm.left_on IS NULL)
+                (s.active AND EXISTS (SELECT 1 FROM group_memberships gm
+                        WHERE gm.student_id=s.id AND gm.group_id=:gid AND gm.left_on IS NULL))
                 OR EXISTS (SELECT 1 FROM lesson_entries e JOIN lessons l ON l.id=e.lesson_id
                            WHERE e.student_id=s.id AND l.group_id=:gid AND l.lesson_date=:day)
               )'''),{'sid':sid,'gid':group_id,'day':lesson_date}).scalar()

@@ -1,0 +1,9 @@
+<details class="student-editor">
+<summary><strong>{{s.last_name}} {{s.first_name}}</strong><span class="student-course">{{s.current_course}} курс</span><span class="student-pencil" aria-label="Изменить ученика" title="Изменить ученика">✎</span></summary>
+<form method="post" action="/students/{{s.id}}/edit" class="fields">
+<label>Фамилия<input name="last_name" value="{{s.last_name}}" required></label>
+<label>Имя<input name="first_name" value="{{s.first_name}}" required></label>
+<label>Курс<select name="course">{% for n in range(1,6) %}<option value="{{n}}" {% if s.current_course==n %}selected{% endif %}>{{n}} курс</option>{% endfor %}</select></label>
+<button>Сохранить изменения</button></form>
+<div class="student-actions"><form method="post" action="/students/{{s.id}}/active" onsubmit="return confirm('Изменить статус ученика? История сохранится.')"><input type="hidden" name="active" value="{{'false' if s.active else 'true'}}"><button class="muted">{{'Архивировать' if s.active else 'Восстановить'}}</button></form>
+{% if not s.has_history %}<form method="post" action="/students/{{s.id}}/delete" onsubmit="return confirm('Удалить ученика полностью, включая участие в группах? Это действие необратимо.')"><button class="student-delete">Удалить ученика</button></form>{% else %}<p class="subtle">Есть история занятий — доступно архивирование.</p>{% endif %}</div></details>
