@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>История занятий</title><link rel="stylesheet" href="/static/style.css"></head><body><main>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>История занятий</title><link rel="stylesheet" href="/static/style.css">{% include "pwa_head.html" %}</head><body><main>
 <nav class="nav"><a href="/">Группы и ученики</a><a href="/catalog">Предметы и темы</a><a href="/journal">Журнал</a><a href="/history" aria-current="page">История</a><a href="/statistics">Статистика</a><a href="/journal/makeups">Отработки</a><form method="post" action="/logout" style="display:inline;margin:0"><button type="submit">Выйти</button></form></nav>
 <header><h1>📅 История занятий</h1><p>Поиск записей, исправления и перенос даты занятия</p></header>
 {% if notice %}<section class="panel notice">{% if notice=='moved' %}Дата занятия изменена.{% elif notice=='deleted' %}Запись удалена.{% else %}Изменений не было.{% endif %}</section>{% endif %}

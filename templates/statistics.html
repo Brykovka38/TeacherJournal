@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Статистика обучения</title><link rel="stylesheet" href="/static/style.css">
 <style>
 .stat-filter{display:flex;flex-wrap:wrap;gap:12px;align-items:end}.stat-filter label{display:flex;flex-direction:column;gap:5px;min-width:170px;flex:1}
@@ -18,7 +18,7 @@
 .stat-subject{padding:10px;margin-top:10px}.stat-subject h3{font-size:16px;overflow-wrap:anywhere}
 .stat-project summary{gap:5px;font-size:14px}.stat-project summary span:last-child{white-space:nowrap}
 }
-</style></head><body><main>
+</style>{% include "pwa_head.html" %}</head><body><main>
 <nav class="nav"><a href="/">Группы и ученики</a><a href="/catalog">Предметы и темы</a><a href="/journal">Журнал</a><a href="/history">История</a><a href="/statistics" aria-current="page">Статистика</a><a href="/journal/makeups">Отработки</a><form method="post" action="/logout" style="display:inline;margin:0"><button type="submit">Выйти</button></form></nav>
 <header><h1>📊 Статистика обучения</h1><p>Предмет → проект → тема, академические часы</p></header>
 <section class="panel"><h2>Фильтры</h2><form method="get" action="/statistics" class="stat-filter">

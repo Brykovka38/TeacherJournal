@@ -3,7 +3,7 @@ from datetime import date
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
@@ -22,6 +22,10 @@ if cloud_url:
     url = make_url(cloud_url).set(drivername='postgresql+psycopg2')
 engine = create_engine(url, pool_pre_ping=True)
 app = FastAPI(title='Журнал преподавателя')
+@app.get('/static/sw.js', include_in_schema=False)
+def pwa_service_worker():
+    return FileResponse(BASE / 'static' / 'sw.js', media_type='application/javascript', headers={'Service-Worker-Allowed': '/', 'Cache-Control': 'no-store'})
+
 app.mount('/static', StaticFiles(directory=BASE/'static'), name='static')
 templates = Jinja2Templates(directory=BASE/'templates')
 

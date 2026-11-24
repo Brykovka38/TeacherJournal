@@ -1,4 +1,4 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Журнал занятий</title><link rel="stylesheet" href="/static/style.css"><style>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Журнал занятий</title><link rel="stylesheet" href="/static/style.css"><style>
 /* Компактная карточка: посещение и часы в одной строке */
 .student-card {padding:16px 18px !important; margin-bottom:12px !important}
 .student-card .grouphead {margin-bottom:10px !important}
@@ -24,7 +24,7 @@
 .first-course-card .compact-comment{grid-column:1/-1}
 .first-course-card .compact-comment summary{padding:5px 0}
 }
-</style></head><body><main>
+</style>{% include "pwa_head.html" %}</head><body><main>
 <nav class="nav"><a href="/">Группы и ученики</a><a href="/catalog">Предметы и темы</a><a href="/journal" aria-current="page">Журнал</a><a href="/history">История</a><a href="/statistics">Статистика</a><a href="/journal/makeups">Отработки</a><form method="post" action="/logout" style="display:inline;margin:0"><button type="submit">Выйти</button></form></nav>
 <script>
 (function(){
