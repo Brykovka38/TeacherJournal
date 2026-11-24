@@ -1,0 +1,87 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Журнал занятий</title><link rel="stylesheet" href="/static/style.css"><style>
+/* Компактная карточка: посещение и часы в одной строке */
+.student-card {padding:16px 18px !important; margin-bottom:12px !important}
+.student-card .grouphead {margin-bottom:10px !important}
+.student-card .grouphead h3 {margin:0 !important}
+.student-card .compact-row {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:end;margin-bottom:10px}
+.student-card .compact-row label,.student-card .compact-subject-topic label {margin:0;min-width:0}
+.student-card .compact-subject-topic {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:12px;align-items:start;margin-bottom:10px}
+.student-card .compact-comment {margin-top:6px}
+.student-card .compact-comment summary {cursor:pointer;color:#345bb3;font-size:14px}
+.student-card .compact-comment textarea {width:100%;margin-top:8px}
+.student-card .compact-row input,.student-card .compact-row select,.student-card .compact-subject-topic select {width:100%;min-height:42px}
+@media(max-width:650px){.student-card .compact-subject-topic{grid-template-columns:1fr}.student-card .compact-row{gap:8px}}
+</style></head><body><main>
+<nav class="nav"><a href="/">Группы и ученики</a><a href="/catalog">Предметы и темы</a><a href="/journal" aria-current="page">Журнал</a><a href="/history">История</a><a href="/statistics">Статистика</a><a href="/journal/makeups">Отработки</a><form method="post" action="/logout" style="display:inline;margin:0"><button type="submit">Выйти</button></form></nav>
+<script>
+(function(){
+ const key='teacherJournalLastLessonDate';
+ const params=new URLSearchParams(location.search);
+ const explicit=params.get('lesson_date');
+ if(explicit && /^\d{4}-\d{2}-\d{2}$/.test(explicit)) localStorage.setItem(key,explicit);
+ else if(!explicit){const remembered=localStorage.getItem(key);if(remembered && /^\d{4}-\d{2}-\d{2}$/.test(remembered)){
+   params.set('lesson_date',remembered);location.replace('/journal?'+params.toString());return;
+ }}
+ document.addEventListener('DOMContentLoaded',()=>{
+  const input=document.querySelector('input[name="lesson_date"]');
+  input?.addEventListener('change',()=>{if(input.value)localStorage.setItem(key,input.value)});
+ });
+})();
+</script><header><h1>📒 Журнал занятий</h1><p>Общая программа 1 курса и индивидуальные занятия 2–5 курсов</p></header>
+<section class="panel"><h2>Выбери занятие</h2><form method="get" action="/journal" class="fields"><label>Дата<input type="date" name="lesson_date" value="{{day}}" required></label><label>Группа<select name="group_id" required>{% for g in groups %}<option value="{{g.id}}" {% if g.id==group_id %}selected{% endif %}>{{g.name}}</option>{% endfor %}</select></label><button>Показать учеников</button></form></section>
+{% if request.query_params.get('saved') %}<section class="panel notice">✓ Записи сохранены в PostgreSQL.</section>{% endif %}
+{% if not groups %}<section class="panel">Сначала создай группу на вкладке «Группы и ученики».</section>{% elif not members %}<section class="panel">На выбранную дату в группе нет учеников. Проверь дату вступления в группу.</section>{% else %}
+<section class="panel"><h2>1 курс — общий предмет и тема</h2><p class="subtle">Одинаковые предмет, тема и часы применяются ко всем первокурсникам группы. Пропуски и комментарии отмечаются отдельно.</p><div id="shared" {% if not members|selectattr('current_course','equalto',1)|list %}hidden{% endif %}><div class="fields"><label>Предмет<select id="shared-subject" class="subject-input"></select></label><label>Тема<div class="topic-picker"><input class="topic-query" placeholder="Например, создание" autocomplete="off"><div class="topic-options"></div><small class="topic-chosen"></small></div></label><label>Академические часы<input id="shared-hours" type="number" min="0.25" max="24" step="0.25" value="{{plan.planned_academic_hours if plan else 4}}"></label></div></div></section>
+<section class="panel"><h2>Ученики группы</h2><p class="subtle">«Пропустил» сохраняет долг по часам. При повторном открытии этой даты записи можно исправить.</p><div id="student-list"></div><button id="save" type="button">Сохранить занятие</button><p id="save-error" class="error" role="alert"></p></section>
+{% endif %}
+<section class="panel" id="makeups"><h2>Неотработанные пропуски</h2>{% if balances %}{% for b in balances %}<div class="member"><span><b>{{b.last_name}} {{b.first_name}}</b> · {{b.missed_date}} · {{b.topic_name}}<br><span class="subtle">Осталось {{b.remaining_hours}} из {{b.required_hours}} ак. ч.</span></span><a href="/history">История</a><a href="/journal/makeups">Отработать</a></div>{% endfor %}{% else %}<p class="subtle">Незакрытых пропусков пока нет.</p>{% endif %}</section>
+</main>
+{% if members %}
+<script type="application/json" id="journal-data">{{journal_json|safe}}</script>
+<script>
+const D=JSON.parse(document.getElementById('journal-data').textContent);
+const $=(s,root=document)=>root.querySelector(s);
+const mk=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e};
+function selectSubject(selected){const el=mk('select','subject-input');D.subjects.forEach(s=>{const o=mk('option','',s.name);o.value=s.id;el.append(o)});if(selected&&D.subjects.some(s=>s.id===Number(selected)))el.value=selected;return el}
+function topicPicker(subjectEl,initial){
+ const wrap=mk('div','topic-picker'),inp=mk('input','topic-query'),opts=mk('div','topic-options'),chosen=mk('small','topic-chosen');
+ inp.placeholder='Нажми для выбора или введи название';inp.autocomplete='off';
+ inp.setAttribute('role','combobox');inp.setAttribute('aria-expanded','false');
+ wrap.append(inp,opts,chosen);let selected=null;
+ function close(){wrap.classList.remove('is-open');inp.setAttribute('aria-expanded','false')}
+ function open(){document.querySelectorAll('.topic-picker.is-open').forEach(p=>{if(p!==wrap){p.classList.remove('is-open');p.querySelector('.topic-query')?.setAttribute('aria-expanded','false')}});wrap.classList.add('is-open');inp.setAttribute('aria-expanded','true');render()}
+ function choose(t){selected=Number(t.id);inp.value=t.name;chosen.textContent='';close()}
+ function render(){opts.replaceChildren();const sid=Number(subjectEl.value),q=inp.value.trim().toLocaleLowerCase('ru');
+  const matches=D.topics.filter(t=>t.subject_id===sid&&t.name.toLocaleLowerCase('ru').includes(q));
+  matches.forEach(t=>{const b=mk('button','topic-option',t.name);b.type='button';b.onclick=()=>choose(t);opts.append(b)});
+  if(q&&!D.topics.some(t=>t.subject_id===sid&&t.name.toLocaleLowerCase('ru')===q)){
+   const b=mk('button','topic-option','＋ Добавить новую тему «'+inp.value.trim()+'»');b.type='button';b.onclick=async()=>{
+    const fd=new FormData();fd.append('subject_id',sid);fd.append('name',inp.value.trim());
+    try{const r=await fetch('/journal/topics',{method:'POST',body:fd});if(!r.ok)throw Error(await r.text());const t=await r.json();if(!D.topics.some(x=>x.id===t.id))D.topics.push(t);choose(t)}catch(e){alert('Не удалось добавить тему: '+e.message)}
+   };opts.append(b)
+  }
+  if(!opts.children.length)opts.append(mk('div','topic-empty','Тем не найдено'));
+ }
+ inp.addEventListener('focus',()=>{if(selected){inp.value=''}open()});
+ inp.addEventListener('input',()=>{selected=null;chosen.textContent='Выбери тему из списка';open()});
+ inp.addEventListener('keydown',e=>{if(e.key==='Escape'){if(selected){const t=D.topics.find(t=>t.id===selected);inp.value=t?.name||''}close();inp.blur()}if(e.key==='Enter'&&wrap.classList.contains('is-open')){e.preventDefault();const first=opts.querySelector('button');if(first)first.click()}});
+ subjectEl.addEventListener('change',()=>{selected=null;inp.value='';chosen.textContent='';close()});
+ document.addEventListener('pointerdown',e=>{if(!wrap.contains(e.target)){if(selected){const t=D.topics.find(t=>t.id===selected);inp.value=t?.name||''}close()}});
+ wrap.getTopic=()=>selected;
+ wrap.setTopic=id=>{const t=D.topics.find(x=>x.id===Number(id)&&x.subject_id===Number(subjectEl.value));if(t)choose(t);else{selected=null;inp.value='';chosen.textContent='';close()}};
+ wrap.setTopic(initial);return wrap
+}
+const sharedSubject=$('#shared-subject');const initialShared=D.plan?.subject_id||D.subjects[0]?.id;
+D.subjects.forEach(s=>{const o=mk('option','',s.name);o.value=s.id;sharedSubject.append(o)});if(initialShared)sharedSubject.value=initialShared;
+const sharedPicker=topicPicker(sharedSubject,D.plan?.topic_id);$('#shared .topic-picker').replaceWith(sharedPicker);
+const list=$('#student-list'),editors=[];
+D.members.forEach(s=>{const old=D.entries.find(e=>e.student_id===s.id),prev=D.previous.find(e=>e.student_id===s.id);const first=(old?.course_at_lesson??s.current_course)===1;
+ const card=mk('div','student-card');const head=mk('div','grouphead');head.append(mk('h3','',s.last_name+' '+s.first_name+' · '+(old?.course_at_lesson??s.current_course)+' курс'),mk('span','subtle',first?'Общая тема':'Индивидуально'));card.append(head);
+ const status=mk('select');[['present','Был'],['absent','Пропустил']].forEach(([v,n])=>{const o=mk('option','',n);o.value=v;status.append(o)});status.value=old?.attendance||'present';const statusLabel=mk('label','','Посещение');statusLabel.append(status);const compactRow=mk('div','compact-row');compactRow.append(statusLabel);
+ let sub=null,picker=null,hours=null;const fields=mk('div','compact-subject-topic');if(!first){const subLabel=mk('label','','Предмет');sub=selectSubject(old?.subject_id||prev?.subject_id);subLabel.append(sub);const topicLabel=mk('label','','Тема');picker=topicPicker(sub,old?.topic_id||prev?.topic_id);topicLabel.append(picker);const hoursLabel=mk('label','','Академические часы');hours=mk('input');hours.type='number';hours.min='.25';hours.max='24';hours.step='.25';hours.value=old?.planned_academic_hours||prev?.planned_academic_hours||4;hoursLabel.append(hours);fields.append(subLabel,topicLabel);compactRow.append(hoursLabel);card.append(compactRow,fields)}else{card.append(compactRow)}
+ const commentWrap=mk('details','compact-comment');const commentTitle=mk('summary','','Комментарий'+(old?.comment?' · заполнен':''));const commentLabel=mk('label');const comment=mk('textarea');comment.rows=2;comment.placeholder='Необязательно';comment.value=old?.comment||'';commentLabel.append(comment);commentWrap.append(commentTitle,commentLabel);if(old?.comment)commentWrap.open=true;card.append(commentWrap);list.append(card);editors.push({s,first,status,sub,picker,hours,comment})});
+$('#save').onclick=async()=>{const error=$('#save-error');error.textContent='';const first=editors.some(e=>e.first);const shared=first?{subject_id:Number(sharedSubject.value),topic_id:sharedPicker.getTopic(),hours:Number($('#shared-hours').value)}:null;if(first&&(!shared.subject_id||!shared.topic_id||shared.hours<=0)){error.textContent='Выбери общую тему и часы для 1 курса';return}
+ const entries=[];for(const e of editors){const topic=e.first?shared.topic_id:e.picker.getTopic();if(!topic){error.textContent='Не выбрана тема: '+e.s.last_name;return}const hours=e.first?shared.hours:Number(e.hours.value);if(!(hours>0&&hours<=24)){error.textContent='Проверь часы: '+e.s.last_name;return}entries.push({student_id:e.s.id,subject_id:e.first?shared.subject_id:Number(e.sub.value),topic_id:topic,hours,attendance:e.status.value,comment:e.comment.value})}
+ const fd=new FormData();fd.append('group_id',{{group_id|tojson}});fd.append('lesson_date',{{day|tojson}});fd.append('payload',JSON.stringify({shared,entries}));try{const r=await fetch('/journal/save',{method:'POST',body:fd});if(!r.ok)throw Error(await r.text());location.href=r.url}catch(e){error.textContent='Не удалось сохранить: '+e.message}};
+</script>{% endif %}
+</body></html>

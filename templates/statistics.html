@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Статистика обучения</title><link rel="stylesheet" href="/static/style.css">
+<style>
+.stat-filter{display:flex;flex-wrap:wrap;gap:12px;align-items:end}.stat-filter label{display:flex;flex-direction:column;gap:5px;min-width:170px;flex:1}
+.stat-filter select,.stat-filter input{width:100%;box-sizing:border-box}
+.stat-summary{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}.stat-summary div{background:#f1f5f9;border-radius:10px;padding:14px;min-width:130px;flex:1}.stat-summary strong{display:block;font-size:1.4rem;margin-top:5px}
+.stat-subject{margin-top:16px;padding:14px;border:1px solid #dce3eb;border-radius:12px}
+.stat-subject h3{margin:0 0 10px}.stat-project{border-top:1px solid #e2e8f0;padding:9px 0}.stat-project summary{cursor:pointer;display:flex;justify-content:space-between;gap:12px;font-weight:600;list-style:none}.stat-project summary::before{content:"▸";margin-right:8px}.stat-project[open] summary::before{content:"▾"}.stat-project summary span:first-child{flex:1}
+.stat-table{width:100%;border-collapse:collapse;margin-top:8px}.stat-table th,.stat-table td{padding:7px 8px;text-align:left;border-bottom:1px solid #e5e7eb}.stat-table th{font-size:.82rem;color:#64748b}.stat-scroll{overflow-x:auto}.stat-muted{color:#64748b;font-size:.9rem}
+</style></head><body><main>
+<nav class="nav"><a href="/">Группы и ученики</a><a href="/catalog">Предметы и темы</a><a href="/journal">Журнал</a><a href="/history">История</a><a href="/statistics" aria-current="page">Статистика</a><a href="/journal/makeups">Отработки</a><form method="post" action="/logout" style="display:inline;margin:0"><button type="submit">Выйти</button></form></nav>
+<header><h1>📊 Статистика обучения</h1><p>Предмет → проект → тема, академические часы</p></header>
+<section class="panel"><h2>Фильтры</h2><form method="get" action="/statistics" class="stat-filter">
+<label>Ученик<select name="student_id"><option value="">Все ученики</option>{% for s in students %}<option value="{{s.id}}" {% if student_id==s.id %}selected{% endif %}>{{s.last_name}} {{s.first_name}}</option>{% endfor %}</select></label>
+<label>Предмет<select name="subject_id" id="subject"><option value="">Все предметы</option>{% for s in subjects %}<option value="{{s.id}}" {% if subject_id==s.id %}selected{% endif %}>{{s.name}}</option>{% endfor %}</select></label>
+<label>Проект<select name="project" id="project"><option value="">Все проекты</option>{% for p in project_options %}<option value="{{p}}" {% if project==p %}selected{% endif %}>{{p}}</option>{% endfor %}</select></label>
+<label>Тема<select name="topic_id" id="topic"><option value="">Все темы</option>{% for t in topics %}<option value="{{t.id}}" data-subject="{{t.subject_id}}" {% if topic_id==t.id %}selected{% endif %}>{{t.name}}</option>{% endfor %}</select></label>
+<label>С даты<input type="date" name="date_from" value="{{date_from}}"></label>
+<label>По дату<input type="date" name="date_to" value="{{date_to}}"></label>
+<button type="submit">Показать статистику</button><a href="/statistics">Сбросить</a>
+</form><p class="stat-muted">Проект — часть названия до первой точки. Без точки — «Без проекта». Период считается по дате исходного занятия; отработки относятся к теме пропуска.</p></section>
+<section class="panel"><h2>Результаты</h2>
+<div class="stat-summary"><div>Пройдено<strong>{{totals.completed}} ак. ч.</strong></div><div>На занятиях<strong>{{totals.attended}} ак. ч.</strong></div><div>Отработано<strong>{{totals.made_up}} ак. ч.</strong></div><div>Долг<strong>{{totals.remaining}} ак. ч.</strong></div><div>Запланировано<strong>{{totals.planned}} ак. ч.</strong></div></div>
+{% for g in groups %}
+<div class="stat-subject"><h3>{{g.student_name}} · {{g.subject_name}} — {{g.completed}} ак. ч.</h3>
+{% for p in g.projects %}
+<details class="stat-project"><summary><span>📁 {{p.name}}</span><span>{{p.completed}} ак. ч.</span></summary>
+<div class="stat-scroll"><table class="stat-table"><thead><tr><th>Тема</th><th>Пройдено</th><th>На занятиях</th><th>Отработано</th><th>Долг</th></tr></thead><tbody>
+{% for t in p.topics %}<tr><td>{{t.action}}</td><td><b>{{t.completed}}</b></td><td>{{t.attended}}</td><td>{{t.made_up}}</td><td>{{t.remaining}}</td></tr>{% endfor %}
+</tbody></table></div></details>
+{% endfor %}</div>
+{% else %}<p class="stat-muted">По выбранным фильтрам занятий нет.</p>{% endfor %}
+</section></main>
+<script>
+const subject=document.getElementById('subject'), topic=document.getElementById('topic');
+subject.addEventListener('change',()=>{const id=subject.value;for(const o of topic.options){if(!o.value)continue;o.hidden=!!id&&o.dataset.subject!==id;}if(topic.selectedOptions[0]?.hidden)topic.value='';});
+subject.dispatchEvent(new Event('change'));
+</script></body></html>
